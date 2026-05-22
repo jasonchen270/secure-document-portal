@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: portal
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  Jwt__Issuer: "secure-document-portal"
+  Jwt__Audience: "secure-document-portal"
+  Jwt__AccessMinutes: "15"
+  Cors__AllowedOrigins__0: "https://portal.example.com"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+  namespace: portal
+data:
+  API_URL: "https://api.portal.example.com/api"

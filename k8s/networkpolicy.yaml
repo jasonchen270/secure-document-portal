@@ -1,0 +1,53 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: portal
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-allow
+  namespace: portal
+spec:
+  podSelector:
+    matchLabels: { app: api }
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { name: ingress-nginx }
+      ports:
+        - port: 8080
+          protocol: TCP
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: { app: redis }
+      ports: [{ port: 6379, protocol: TCP }]
+    - to: [] # postgres + azure blob are outside cluster
+      ports:
+        - port: 5432
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+        - port: 53
+          protocol: UDP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-allow
+  namespace: portal
+spec:
+  podSelector:
+    matchLabels: { app: web }
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { name: ingress-nginx }
+      ports: [{ port: 80, protocol: TCP }]

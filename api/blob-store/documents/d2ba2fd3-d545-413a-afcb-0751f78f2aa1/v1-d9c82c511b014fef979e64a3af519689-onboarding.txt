@@ -1,0 +1,7 @@
+New hire onboarding checklist (Engineering)
+
+[ ] Laptop provisioning
+[ ] SSO + MFA enrollment
+[ ] Repo access (least-privilege starter set)
+[ ] Pager rotation read-only week
+[ ] First-week mentor pairing

@@ -1,0 +1,12 @@
+Q4 Compliance Report (Internal Draft)
+======================================
+
+Section 1: Control coverage
+- SOC2 controls implemented: 142/150
+- Open exceptions: 8 (4 low, 3 medium, 1 high)
+
+Section 2: Outstanding remediation
+- AC-3 (least privilege review), owner: platform, due 2026-06-01
+- AU-12 (audit retention policy), owner: secops, due 2026-05-30
+
+Section 3: Sign-off pending from Legal and Finance.

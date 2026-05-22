@@ -1,0 +1,169 @@
+stages:
+  - test
+  - build
+  - scan
+  - publish
+  - deploy
+
+variables:
+  REGISTRY: $CI_REGISTRY_IMAGE
+  TAG: $CI_COMMIT_SHORT_SHA
+  TRIVY_NO_PROGRESS: "true"
+  TRIVY_CACHE_DIR: ".trivycache/"
+
+# ---- TEST ----
+
+test:api:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - cd api
+    - dotnet restore
+    - dotnet build --no-restore -c Release
+    - dotnet test --no-build -c Release --logger "trx" || true
+  artifacts:
+    when: always
+    reports:
+      junit: api/**/TestResults/*.trx
+
+test:web:
+  stage: test
+  image: node:20
+  cache:
+    key: $CI_COMMIT_REF_SLUG-web
+    paths: [web/node_modules/]
+  script:
+    - cd web
+    - npm ci
+    - npx ng build --configuration=production
+
+# ---- BUILD ----
+
+.build-template: &build-template
+  stage: build
+  image: docker:25
+  services: [docker:25-dind]
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+
+build:api:
+  <<: *build-template
+  script:
+    - docker build -t $REGISTRY/api:$TAG ./api
+    - docker save $REGISTRY/api:$TAG -o api-image.tar
+  artifacts:
+    paths: [api-image.tar]
+    expire_in: 1 day
+
+build:web:
+  <<: *build-template
+  script:
+    - docker build -t $REGISTRY/web:$TAG ./web
+    - docker save $REGISTRY/web:$TAG -o web-image.tar
+  artifacts:
+    paths: [web-image.tar]
+    expire_in: 1 day
+
+# ---- SCAN ----
+
+.trivy-template: &trivy-template
+  stage: scan
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  cache:
+    key: trivy-db
+    paths: [.trivycache/]
+
+scan:api:
+  <<: *trivy-template
+  needs: ["build:api"]
+  script:
+    - trivy image --input api-image.tar
+        --severity HIGH,CRITICAL
+        --exit-code 1
+        --ignore-unfixed
+        --format table
+        --output api-scan.txt
+  artifacts:
+    when: always
+    paths: [api-scan.txt]
+
+scan:web:
+  <<: *trivy-template
+  needs: ["build:web"]
+  script:
+    - trivy image --input web-image.tar
+        --severity HIGH,CRITICAL
+        --exit-code 1
+        --ignore-unfixed
+        --format table
+        --output web-scan.txt
+  artifacts:
+    when: always
+    paths: [web-scan.txt]
+
+# ---- PUBLISH ----
+
+publish:api:
+  stage: publish
+  image: docker:25
+  services: [docker:25-dind]
+  needs: ["scan:api", "build:api"]
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker load -i api-image.tar
+    - docker push $REGISTRY/api:$TAG
+    - docker tag  $REGISTRY/api:$TAG $REGISTRY/api:latest
+    - docker push $REGISTRY/api:latest
+  only: [main]
+
+publish:web:
+  stage: publish
+  image: docker:25
+  services: [docker:25-dind]
+  needs: ["scan:web", "build:web"]
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker load -i web-image.tar
+    - docker push $REGISTRY/web:$TAG
+    - docker tag  $REGISTRY/web:$TAG $REGISTRY/web:latest
+    - docker push $REGISTRY/web:latest
+  only: [main]
+
+# ---- DEPLOY (staged rollout: staging -> manual prod gate) ----
+
+.deploy-template: &deploy-template
+  image: bitnami/kubectl:1.30
+  before_script:
+    - kubectl config use-context "$KUBE_CONTEXT"
+
+deploy:staging:
+  <<: *deploy-template
+  stage: deploy
+  environment:
+    name: staging
+    url: https://staging.portal.example.com
+  script:
+    - kubectl -n portal set image deployment/api  api=$REGISTRY/api:$TAG
+    - kubectl -n portal set image deployment/web  web=$REGISTRY/web:$TAG
+    - kubectl -n portal rollout status deployment/api  --timeout=5m
+    - kubectl -n portal rollout status deployment/web  --timeout=5m
+  only: [main]
+
+deploy:production:
+  <<: *deploy-template
+  stage: deploy
+  needs: ["deploy:staging"]
+  environment:
+    name: production
+    url: https://portal.example.com
+  when: manual
+  script:
+    - kubectl -n portal set image deployment/api  api=$REGISTRY/api:$TAG
+    - kubectl -n portal set image deployment/web  web=$REGISTRY/web:$TAG
+    - kubectl -n portal rollout status deployment/api  --timeout=10m
+    - kubectl -n portal rollout status deployment/web  --timeout=10m
+  only: [main]
