@@ -41,17 +41,6 @@ That builds the API and web images, brings up Postgres + Redis + Azurite (Azure 
 | reviewer@portal.local    | Reviewer | View all documents, view audit log                  |
 | uploader@portal.local    | Uploader | Create/upload/download/delete only their own docs   |
 
-## Layout
-
-```
-api/      .NET 8 Web API (auth, documents, users, audit)
-web/      Angular SPA
-k8s/      Kubernetes manifests for AKS
-docs/     Architecture + security notes
-.gitlab-ci.yml   build → test → Trivy scan → publish → staged rollout
-docker-compose.yml   one-command local demo
-```
-
 ## Useful targets
 
 ```
