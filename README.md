@@ -1,14 +1,13 @@
 # Secure Document Portal
 
-A document management portal with role-based access, audit logging, versioned uploads, and a production-style deployment story.
+A document management portal with role-based access, audit logging, and versioned uploads.
 
 - **Frontend:** Angular 17 (standalone components, signals, function-style guards/interceptors)
 - **Backend:** .NET 8 Web API with JWT (access + refresh-token rotation), policy-based RBAC, EF Core, BCrypt password hashing
 - **Storage:** PostgreSQL (metadata + audit), Azure Blob Storage (document binaries, SHA-256-hashed)
 - **Cache:** Redis
-- **Deploy:** Docker images, Kubernetes manifests for AKS (HPA, NetworkPolicy, NonRoot/ReadOnlyRootFS), GitLab CI with Trivy image scanning and staged rollout (auto-staging, manual prod gate)
 
-## Quick start (demo)
+## Quick start
 
 ### Lightweight mode (no Docker needed)
 
@@ -32,20 +31,3 @@ That builds the API and web images, brings up Postgres + Redis + Azurite (Azure 
 
 - Web:  http://localhost:8080
 - API:  http://localhost:5080 (OpenAPI doc at `/openapi/v1.json`)
-
-### Seeded accounts (password: `ChangeMe!123`)
-
-| Email                    | Role     | Can do                                              |
-|--------------------------|----------|-----------------------------------------------------|
-| admin@portal.local       | Admin    | Everything: manage users, view audit, all docs      |
-| reviewer@portal.local    | Reviewer | View all documents, view audit log                  |
-| uploader@portal.local    | Uploader | Create/upload/download/delete only their own docs   |
-
-## Useful targets
-
-```
-make demo         build + up + open browser
-make demo-down    stop containers (keep data)
-make demo-logs    follow logs
-make clean        stop + remove volumes
-```
