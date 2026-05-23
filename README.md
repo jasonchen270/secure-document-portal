@@ -60,7 +60,3 @@ make demo-down    stop containers (keep data)
 make demo-logs    follow logs
 make clean        stop + remove volumes
 ```
-
-## Security model
-
-See [docs/SECURITY.md](docs/SECURITY.md) for the threat model and a breakdown of the controls (JWT, RBAC, audit, blob hashing, container hardening, network policy).
