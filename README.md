@@ -1,6 +1,6 @@
 # Secure Document Portal
 
-A document management portal with role-based access, audit logging, and versioned uploads. The frontend is Angular 17 (standalone components, signals, function-style guards/interceptors) and the backend is a .NET 8 Web API with JWT access plus refresh-token rotation, policy-based RBAC, EF Core, and BCrypt password hashing. Metadata and audit records live in PostgreSQL, document binaries are stored SHA-256-hashed in Azure Blob Storage, and Redis provides caching.
+A document management portal with role-based access, audit logging, and versioned uploads. The frontend is Angular 17 (standalone components, signals, function-style guards/interceptors) and the backend is a .NET 10 Web API with JWT access plus refresh-token rotation, policy-based RBAC, EF Core, and BCrypt password hashing. Metadata and audit records live in PostgreSQL, document binaries are stored SHA-256-hashed in Azure Blob Storage, and Redis provides caching.
 
 ## Prerequisites
 
